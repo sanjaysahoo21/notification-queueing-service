@@ -24,17 +24,15 @@ public class RatelimiterService {
     public boolean isAllowed(String clientKey) {
         String redisKey = "rate_limit:" + clientKey;
 
-        Long requestCount = redisTemplate.opsForValue().decrement(redisKey);
+        // Use increment. If key is missing, it creates it with value 1.
+        Long requestCount = redisTemplate.opsForValue().increment(redisKey);
 
-        if(requestCount == null) {
-            return false;
-        }
-
-        if(requestCount == 1) {
+        if(requestCount != null && requestCount == 1) {
+            // First request: Set expiration window
             redisTemplate.expire(redisKey, Duration.ofSeconds(windowSeconds));
         }
 
-        return requestCount <= maxRequests;
+        return requestCount != null && requestCount <= maxRequests;
 
     }
 }
