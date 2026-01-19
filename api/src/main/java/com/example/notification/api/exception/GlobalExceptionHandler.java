@@ -1,6 +1,7 @@
 package com.example.notification.api.exception;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -23,4 +24,12 @@ public class GlobalExceptionHandler {
 
         return errors;
     }
+
+    @ExceptionHandler(RateLimitExceededException.class)
+    public ResponseEntity<String> handleRateLimit(RateLimitExceededException ex) {
+        return ResponseEntity.status(429)
+                .header("Retry-After", "60")
+                .body("Rate limit exceeded. Try again later.");
+    }
+
 }
