@@ -33,7 +33,7 @@ public class Notification {
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
 
-    protected Notification() {}
+    public Notification() {}
 
     public UUID getId() {
         return id;
