@@ -1,0 +1,6 @@
+{
+  "recipient": "test@example.com",
+  "subject": "Test Message",
+  "body": "This is a test notification",
+  "type": "EMAIL"
+}

@@ -303,3 +303,55 @@ The system is production-ready and follows modern backend design practices.
 1. **Request Phase**: Client → API → Validation → Rate Limit Check → Save to DB (PENDING) → Publish to Queue → Return ID
 2. **Processing Phase**: Worker → Consume Message → Process Notification → Update DB (SENT)
 3. **Status Check**: Client → API → Query DB → Return Status
+
+---
+
+## 10) How to Run Tests
+
+The project includes unit tests for both the API and Worker services.
+
+### Running API Tests
+
+```bash
+cd api
+mvn test
+```
+
+### Running Worker Tests
+
+```bash
+cd worker
+mvn test
+```
+
+These tests verify:
+
+- **API**: NotificationService creates records correctly and publishes to RabbitMQ.
+- **Worker**: NotificationConsumer receives messages and updates the database status.
+
+---
+
+## 11) Key Design Decisions
+
+### 1. Rate Limiting Algorithm
+
+We implemented a **Fixed Window Counter** algorithm using Redis.
+
+- **Why?**: It is simple, atomic (using Redis `INCR`), and highly effective for preventing abuse in distributed systems.
+- **Implementation**: Each client key (e.g., recipient email) has a counter in Redis that expires every 60 seconds.
+
+### 2. Message Queue (RabbitMQ)
+
+We used RabbitMQ to decouple the API from the Worker.
+
+- **Why?**:
+  - **Reliability**: Ensures messages are not lost if the worker is down.
+  - **Scalability**: Allows multiple workers to process notifications in parallel.
+  - **Responsiveness**: The API responds immediately (202/200 OK) without waiting for the slow email sending process.
+
+### 3. Error Handling
+
+- **Global Exception Handling**: A `@RestControllerAdvice` manages errors centrally.
+  - Returns `400 Bad Request` for validation errors.
+  - Returns `429 Too Many Requests` when the rate limit is exceeded.
+- **Graceful Failures**: The worker logs errors if a message cannot be processed, preventing the entire consumer from crashing.
