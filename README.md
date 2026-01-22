@@ -12,7 +12,8 @@ A separate worker service reads the message from the queue and processes it in t
 
 This makes the system fast, scalable, and reliable.
 
-### Flow:
+### Flow
+
 1. Client sends notification request to API
 2. API validates input and applies rate limiting
 3. API saves notification in PostgreSQL with status PENDING
@@ -27,6 +28,7 @@ This makes the system fast, scalable, and reliable.
 ## 2) Frameworks and Tools Used
 
 ### Backend
+
 - Java 17
 - Spring Boot
 - Spring Web
@@ -36,6 +38,7 @@ This makes the system fast, scalable, and reliable.
 - Spring Data Redis
 
 ### Infrastructure
+
 - PostgreSQL
 - RabbitMQ
 - Redis
@@ -50,6 +53,7 @@ This makes the system fast, scalable, and reliable.
 > Local run is optional. Docker is recommended.
 
 ### Requirements
+
 - Java 17
 - Maven
 - PostgreSQL
@@ -57,12 +61,14 @@ This makes the system fast, scalable, and reliable.
 - RabbitMQ
 
 ### Run API
+
 ```bash
 cd api
 mvn spring-boot:run
 ```
 
 ### Run Worker
+
 ```bash
 cd worker
 mvn spring-boot:run
@@ -73,39 +79,32 @@ mvn spring-boot:run
 ## 4) How to Run Using Docker (Recommended)
 
 ### Requirements
+
 - Docker
 - Docker Compose
 
 ### Steps
 
-#### 1. Build JAR files
-```bash
-cd api
-mvn clean package -DskipTests
-cd ../worker
-mvn clean package -DskipTests
-cd ..
-```
+#### Start all services
 
-#### 2. Start all services
 ```bash
 docker-compose up --build
 ```
 
-This starts:
-- API service
-- Worker service
-- PostgreSQL
-- Redis
-- RabbitMQ
+That's it! Docker will automatically:
+
+1. Compile the code (API & Worker)
+2. Build the JAR files
+3. Start PostgreSQL, Redis, RabbitMQ
+4. Start the Application services
 
 ---
 
 ## 5) Application URLs
 
-- **Swagger UI**: http://localhost:8080/swagger-ui/index.html
-- **Health Check**: http://localhost:8080/health
-- **RabbitMQ Management UI**: http://localhost:15672  
+- **Swagger UI**: <http://localhost:8080/swagger-ui/index.html>
+- **Health Check**: <http://localhost:8080/health>
+- **RabbitMQ Management UI**: <http://localhost:15672>  
   - Username: `guest`  
   - Password: `guest`
 
@@ -116,6 +115,7 @@ This starts:
 ### Create Notification (POST /api/notifications)
 
 **Request:**
+
 ```json
 {
   "recipient": "test@example.com",
@@ -126,6 +126,7 @@ This starts:
 ```
 
 **Response:**
+
 ```json
 {
   "notification_id": "uuid-value"
@@ -135,6 +136,7 @@ This starts:
 ### Get Notification Status (GET /api/notifications/{id})
 
 **Response:**
+
 ```json
 {
   "id": "uuid-value",
@@ -153,16 +155,19 @@ This starts:
 ## 7) PostgreSQL Commands to Check Status (Docker)
 
 ### Enter PostgreSQL container
+
 ```bash
 docker exec -it postgres psql -U postgres -d notifications
 ```
 
 ### View all notifications
+
 ```sql
 SELECT id, status FROM notifications;
 ```
 
 ### View only SENT notifications
+
 ```sql
 SELECT * FROM notifications WHERE status = 'SENT';
 ```
@@ -172,6 +177,7 @@ SELECT * FROM notifications WHERE status = 'SENT';
 ## 8) Conclusion
 
 This project demonstrates:
+
 - Asynchronous processing using RabbitMQ
 - Distributed rate limiting using Redis
 - Reliable data storage using PostgreSQL
@@ -248,6 +254,7 @@ The system is production-ready and follows modern backend design practices.
 ### Architecture Components
 
 #### 1. API Service
+
 - **Technology**: Spring Boot REST API
 - **Port**: 8080
 - **Responsibilities**:
@@ -259,6 +266,7 @@ The system is production-ready and follows modern backend design practices.
   - Return notification ID to client
 
 #### 2. Worker Service
+
 - **Technology**: Spring Boot Background Service
 - **Responsibilities**:
   - Listen to RabbitMQ queue
@@ -267,6 +275,7 @@ The system is production-ready and follows modern backend design practices.
   - Update notification status in database
 
 #### 3. PostgreSQL
+
 - **Purpose**: Persistent data storage
 - **Stores**:
   - Notification details (id, recipient, subject, body, type)
@@ -274,6 +283,7 @@ The system is production-ready and follows modern backend design practices.
   - Timestamps (createdAt, updatedAt)
 
 #### 4. RabbitMQ
+
 - **Purpose**: Message queue for async processing
 - **Benefits**:
   - Decouples API from worker
@@ -281,6 +291,7 @@ The system is production-ready and follows modern backend design practices.
   - Enables horizontal scaling of workers
 
 #### 5. Redis
+
 - **Purpose**: Distributed rate limiting
 - **Function**:
   - Tracks API request count per user/IP
