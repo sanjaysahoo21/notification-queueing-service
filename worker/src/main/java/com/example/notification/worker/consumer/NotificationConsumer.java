@@ -4,17 +4,22 @@ import com.example.notification.worker.Repository.NotificationRepository;
 import com.example.notification.worker.dto.*;
 import com.example.notification.worker.entity.Notification;
 
+import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Service;
 
 import java.time.OffsetDateTime;
 import java.util.Optional;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 public class NotificationConsumer {
 
     private final NotificationRepository notificationRepository;
+
+    private static final Logger log = LoggerFactory.getLogger(NotificationConsumer.class);
 
     public NotificationConsumer(NotificationRepository notificationRepository) {
         this.notificationRepository = notificationRepository;
@@ -48,7 +53,7 @@ public class NotificationConsumer {
 
         notificationRepository.save(notification);
 
-        System.out.println("Notification sent: " + notificationId);
+        log.info("Notification processed id: {}", notificationId);
 
     }
 }

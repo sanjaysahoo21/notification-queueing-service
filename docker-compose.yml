@@ -41,6 +41,7 @@ services:
       - postgres
       - redis
       - rabbitmq
+    restart: unless-stopped
 
   worker:
     build: ./worker
@@ -53,6 +54,7 @@ services:
     depends_on:
       - postgres
       - rabbitmq
+    restart: unless-stopped
 
 volumes:
   postgres_data:
