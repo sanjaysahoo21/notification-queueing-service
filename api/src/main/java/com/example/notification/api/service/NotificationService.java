@@ -5,13 +5,16 @@ import com.example.notification.api.dto.NotificationMessage;
 import com.example.notification.api.dto.NotificationRequest;
 import com.example.notification.api.dto.NotificationStatusResponse;
 import com.example.notification.api.entity.Notification;
-import jakarta.transaction.Transactional;
+import com.example.notification.api.exception.NotificationNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.OffsetDateTime;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -43,26 +46,33 @@ public class NotificationService {
           notification.setUpdatedAt(OffsetDateTime.now());
 
           notificationRepository.save(notification);
+          log.info("Notification created with id: {}", notificationId);
 
           NotificationMessage message = new NotificationMessage(
                     notificationId,
                     request.getRecipient(),
-                    request.getType());
+                    request.getType(),
+                    MDC.get("correlationId"));
 
-          publisher.publish(message);
+          // Publish only after the DB transaction commits to avoid ghost messages
+          if (TransactionSynchronizationManager.isActualTransactionActive()) {
+               TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                         publisher.publish(message);
+                    }
+               });
+          } else {
+               publisher.publish(message);
+          }
 
           return notificationId;
      }
 
      public NotificationStatusResponse getNotification(UUID id) {
 
-          Optional<Notification> optional = notificationRepository.findById(id);
-
-          if(optional.isEmpty()) {
-               return null;
-          }
-
-          Notification notification = optional.get();
+          Notification notification = notificationRepository.findById(id)
+                    .orElseThrow(() -> new NotificationNotFoundException("Notification not found: " + id));
 
           return new NotificationStatusResponse(
                   notification.getId(),
