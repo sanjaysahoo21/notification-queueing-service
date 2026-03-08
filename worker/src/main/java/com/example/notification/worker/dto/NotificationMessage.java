@@ -7,6 +7,7 @@ public class NotificationMessage {
     private UUID notificationId;
     private String recipient;
     private String type;
+    private String correlationId;
 
     public NotificationMessage() {}
 
@@ -32,5 +33,13 @@ public class NotificationMessage {
 
     public void setNotificationId(UUID notificationId) {
         this.notificationId = notificationId;
+    }
+
+    public String getCorrelationId() {
+        return correlationId;
+    }
+
+    public void setCorrelationId(String correlationId) {
+        this.correlationId = correlationId;
     }
 }
