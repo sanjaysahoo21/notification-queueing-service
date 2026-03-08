@@ -16,18 +16,19 @@ public class RateLimitInterceptor implements HandlerInterceptor {
     }
 
     @Override
-    public boolean preHandle(HttpServletRequest request, HttpServletResponse response,Object handler) {
-
-        String clientIp = request.getRemoteAddr();
+    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
+        String forwardedFor = request.getHeader("X-Forwarded-For");
+        String clientIp = (forwardedFor != null && !forwardedFor.isBlank())
+                ? forwardedFor.split(",")[0].trim()
+                : request.getRemoteAddr();
 
         boolean allowed = ratelimiterService.isAllowed(clientIp);
 
-        if(!allowed) {
-            throw new RateLimitExceededException("Too many request");
+        if (!allowed) {
+            throw new RateLimitExceededException("Too many requests");
         }
 
         return true;
-
     }
 
 }
