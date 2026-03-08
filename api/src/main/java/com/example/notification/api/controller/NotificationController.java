@@ -1,6 +1,5 @@
 package com.example.notification.api.controller;
 
-import com.example.notification.api.dto.NotificationMessage;
 import com.example.notification.api.dto.NotificationStatusResponse;
 import com.example.notification.api.service.NotificationPublisher;
 import com.example.notification.api.service.NotificationService;
@@ -51,13 +50,8 @@ public class NotificationController {
             @ApiResponse(responseCode = "404", description = "Notification not found")
     })
     @GetMapping("/{id}")
-    public ResponseEntity<NotificationStatusResponse> getNotificationStatus(@PathVariable  UUID id) {
-
-        NotificationStatusResponse response = notificationService.getNotification(id);
-
-        if(response == null) return ResponseEntity.notFound().build();
-
-        return ResponseEntity.ok(response);
+    public ResponseEntity<NotificationStatusResponse> getNotificationStatus(@PathVariable UUID id) {
+        return ResponseEntity.ok(notificationService.getNotification(id));
     }
 
 
