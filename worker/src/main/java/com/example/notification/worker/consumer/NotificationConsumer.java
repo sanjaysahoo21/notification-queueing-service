@@ -1,18 +1,20 @@
 package com.example.notification.worker.consumer;
 
 import com.example.notification.worker.Repository.NotificationRepository;
-import com.example.notification.worker.dto.*;
+import com.example.notification.worker.config.RabbitMQConfig;
+import com.example.notification.worker.dto.NotificationMessage;
 import com.example.notification.worker.entity.Notification;
 
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
 import java.util.Optional;
 import java.util.UUID;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @Service
 public class NotificationConsumer {
@@ -25,35 +27,52 @@ public class NotificationConsumer {
         this.notificationRepository = notificationRepository;
     }
 
-    @RabbitListener(queues = "notification.queue")
+    @RabbitListener(queues = RabbitMQConfig.QUEUE_NAME)
+    @Transactional
     public void consume(NotificationMessage message) throws InterruptedException {
 
         UUID notificationId = message.getNotificationId();
 
-        System.out.println("Processing notification: " + notificationId);
-
-        Optional<Notification> optional = notificationRepository.findById(notificationId);
-
-        if (optional.isEmpty()) {
-            System.out.println("Notification not found: " + notificationId);
-            return;
+        // Propagate correlationId from API into worker MDC for end-to-end tracing
+        String correlationId = message.getCorrelationId();
+        if (correlationId != null) {
+            MDC.put("correlationId", correlationId);
         }
 
-        Notification notification = optional.get();
+        try {
+            log.info("Processing notification: {}", notificationId);
 
-        if (!"PENDING".equals(notification.getStatus())) {
-            System.out.println("Notification already processed: " + notificationId);
-            return;
+            Optional<Notification> optional = notificationRepository.findById(notificationId);
+
+            if (optional.isEmpty()) {
+                log.warn("Notification not found: {}", notificationId);
+                return;
+            }
+
+            Notification notification = optional.get();
+
+            if (!"PENDING".equals(notification.getStatus())) {
+                log.warn("Notification already processed: {}", notificationId);
+                return;
+            }
+
+            Thread.sleep(2000);
+
+            notification.setStatus("SENT");
+            notification.setUpdatedAt(OffsetDateTime.now());
+            notificationRepository.save(notification);
+
+            log.info("Notification processed id: {}", notificationId);
+
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.error("Consumer thread interrupted for notification: {}", notificationId, e);
+            throw e;
+        } catch (Exception e) {
+            log.error("Failed to process notification: {} — will retry", notificationId, e);
+            throw e; // rethrow so Spring AMQP retry kicks in; exhausted retries → DLQ
+        } finally {
+            MDC.clear();
         }
-
-        Thread.sleep(2000);
-
-        notification.setStatus("SENT");
-        notification.setUpdatedAt(OffsetDateTime.now());
-
-        notificationRepository.save(notification);
-
-        log.info("Notification processed id: {}", notificationId);
-
     }
 }
