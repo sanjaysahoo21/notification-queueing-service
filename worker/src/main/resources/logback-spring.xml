@@ -1,13 +1,14 @@
 <configuration>
-    <appender name="STDOUT"
-              class="ch.qos.logback.core.ConsoleAppender">
-        <encoder>
-            <pattern>
-                %d{yyyy-MM-dd HH:mm:ss} [%thread]
-                %-5level %logger{36}
-                correlationId=%X{correlationId}
-                - %msg%n
-            </pattern>
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <customFields>{"service":"worker"}</customFields>
+            <fieldNames>
+                <timestamp>timestamp</timestamp>
+                <message>message</message>
+                <logger>logger</logger>
+                <thread>thread</thread>
+                <level>level</level>
+            </fieldNames>
         </encoder>
     </appender>
 
