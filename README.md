@@ -14,6 +14,7 @@ A production-grade distributed notification system built with two Spring Boot mi
 6. [API Reference](#6-api-reference)
 7. [Configuration](#7-configuration)
 8. [Testing](#8-testing)
+9. [Improvements Made (Mentor Report)](#9-improvements-made-mentor-report)
 
 ---
 
@@ -322,3 +323,22 @@ cd worker && ./mvnw test -Dtest="NotificationConsumerIntegrationTest"
 | `rateLimiting_shouldReturn429AfterExceedingLimit` | Sliding window blocks excess requests |
 | `consume_pendingNotification_shouldUpdateStatusToSent` | Full flow: publish → consume → SENT in DB |
 | `consume_alreadyProcessed_shouldBeSkippedIdempotently` | Duplicate delivery is a safe no-op |
+
+---
+
+## 9) Improvements Made (Mentor Report)
+
+After receiving the initial score, the following improvements were implemented to address all mentor feedback:
+
+| # | Issue | Fix |
+|---|---|---|
+| 1 | **Non-atomic rate limiter** — `INCR` + `EXPIRE` could crash between commands leaving immortal keys; fixed-window allowed 2× burst at boundary | Replaced with atomic Lua script + Redis ZSET sliding window |
+| 2 | **Hardcoded credentials** — DB password, RabbitMQ credentials hardcoded in `application.properties` | All values use `${ENV_VAR:default}` — configurable via environment, safe defaults for local dev |
+| 3 | **No worker error handling** — uncaught exceptions killed the consumer silently | Added try-catch-finally; exceptions rethrown for Spring AMQP retry; 3 attempts with exponential backoff; exhausted → DLQ |
+| 4 | **No Dead Letter Queue** — failed messages were lost | Declared `notification.dlx` + `notification.dlq`; queue configured with `x-dead-letter-exchange` |
+| 5 | **Correlation ID not propagated** — couldn't trace a request across API + Worker logs | `correlationId` added to `NotificationMessage` DTO; API reads from MDC, Worker writes back to MDC |
+| 6 | **Non-JSON logging** — plain-text logs not parseable by log aggregators | Both services use LogstashEncoder; all output is structured JSON |
+| 7 | **No integration tests** — only unit tests with mocks | Added Testcontainers integration tests: 7 for API, 2 for Worker |
+| 8 | **HealthController missing Swagger docs** | Added `@Tag`, `@Operation`, `@ApiResponses` annotations |
+| 9 | **Publisher inside `@Transactional`** — message published before DB commit confirmed | Wrapped publish in `TransactionSynchronization.afterCommit()` |
+| 10 | **Hardcoded queue name in `@RabbitListener`** | Changed to `RabbitMQConfig.QUEUE_NAME` constant |
